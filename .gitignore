@@ -1,0 +1,53 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+
+# Python/runtime
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Generated experiment artifacts
+logs/
+results/
+logs_qasc*/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.log
+.log
+experiment_results.*
+task_progress.*
+failed_configs.*
+*_status.txt
+*_summary.json
+latest_*_session.txt
+.last_*_label
+
+# One-off exploratory artifacts
+*smoke*.csv
+*smoke*.json
+*smoke*.jsonl
+*probe*.csv
+*probe*.json
+*probe*.jsonl
+
+# Vendored baseline generated outputs
+external_baselines/mrt/**/transcripts*/
+external_baselines/mrt/**/monitor_responses*/
+external_baselines/mrt/notebooks/
+external_baselines/mrt/experiments/agentcompany/tac-openhands/
