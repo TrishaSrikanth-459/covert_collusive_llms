@@ -1,5 +1,5 @@
 """
-Statistical analysis for collusive covert HotpotQA experiments.
+Statistical analysis for coordination-collusion experiment checkpoints.
 
 Reads task_progress.<run_label>.jsonl and writes pairwise tests for the core
 research comparisons specified in the experiment plan.
@@ -216,7 +216,7 @@ def analyze(input_jsonl: str, output_csv: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Analyze collusive HotpotQA task checkpoints")
+    parser = argparse.ArgumentParser(description="Analyze coordination-collusion task checkpoints")
     parser.add_argument("input_jsonl", help="task_progress.<run_label>.jsonl")
     parser.add_argument("--output", default="collusive_statistical_tests.csv")
     args = parser.parse_args()

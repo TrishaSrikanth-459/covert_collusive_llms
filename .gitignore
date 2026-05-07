@@ -23,7 +23,6 @@ __pycache__/
 # Generated experiment artifacts
 logs/
 results/
-logs_qasc*/
 *.db
 *.db-shm
 *.db-wal
@@ -46,8 +45,10 @@ latest_*_session.txt
 *probe*.json
 *probe*.jsonl
 
-# Vendored baseline generated outputs
-external_baselines/mrt/**/transcripts*/
-external_baselines/mrt/**/monitor_responses*/
-external_baselines/mrt/notebooks/
-external_baselines/mrt/experiments/agentcompany/tac-openhands/
+# Generated paper artifacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.pdf

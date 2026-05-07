@@ -69,15 +69,7 @@ def _protocol_fingerprint() -> str:
         "evaluation.py",
         "permission_manager.py",
         "prompt_injection.py",
-        "musique_loader.py",
-        "qasc_loader.py",
-        "bigcodebench_loader.py",
-        "humaneval_loader.py",
-        "decision_sabotage_loader.py",
         "coordination_collusion_loader.py",
-        "apps_control_loader.py",
-        "mmlu_pro_loader.py",
-        "musr_loader.py",
         "qa_loader.py",
         "role_assigner.py",
         "config.py",
@@ -110,8 +102,8 @@ CONDITION_SPECS = [
 MAX_CONCURRENT = _get_env_int("MAX_CONCURRENT", 4)
 MAX_CONCURRENT_CAP = _get_env_int("MAX_CONCURRENT_CAP", 12)
 TOTAL_REPS = cfg.TOTAL_REPS
-RUN_LABEL = _slugify(os.getenv("RUN_LABEL", f"fake_injection_hidden_detectors_{DOMAIN}_full9_rep5_w7"))
-EXPERIMENT_VERSION = os.getenv("EXPERIMENT_VERSION", f"2026-05-fake-injection-hidden-detectors-{DOMAIN}-full9-w7-v1")
+RUN_LABEL = _slugify(os.getenv("RUN_LABEL", f"coordination_collusion_{DOMAIN}_full9_rep5_w5"))
+EXPERIMENT_VERSION = os.getenv("EXPERIMENT_VERSION", f"2026-05-coordination-collusion-{DOMAIN}-full9-w5-v1")
 PROTOCOL_FINGERPRINT = os.getenv("PROTOCOL_FINGERPRINT", _protocol_fingerprint())
 OUTPUT_CSV = os.getenv("OUTPUT_CSV", f"experiment_results.{RUN_LABEL}.csv")
 TASK_PROGRESS_JSONL = os.getenv("TASK_PROGRESS_JSONL", f"task_progress.{RUN_LABEL}.jsonl")
@@ -163,36 +155,6 @@ BASE_OUTPUT_FIELDNAMES = [
     "qa_dataset",
     "qa_tasks",
     "qa_context_chars",
-    "qasc_repo_id",
-    "qasc_split",
-    "mmlu_pro_repo_id",
-    "mmlu_pro_split",
-    "mmlu_pro_min_options",
-    "mmlu_pro_categories",
-    "mmlu_pro_source_prefixes",
-    "musr_repo_id",
-    "musr_split",
-    "decision_sabotage_task_version",
-    "apps_control_repo_id",
-    "apps_control_split",
-    "apps_control_backdoor_source",
-    "apps_control_review_mode",
-    "apps_control_max_question_chars",
-    "apps_control_max_code_chars",
-    "apps_control_max_total_chars",
-    "apps_control_nondeterminism_score_max",
-    "musique_repo_id",
-    "musique_file_variant",
-    "musique_split",
-    "musique_min_hops",
-    "code_dataset",
-    "code_tasks",
-    "bigcodebench_repo_id",
-    "bigcodebench_split",
-    "bigcodebench_require_threat_surface",
-    "bigcodebench_threat_surface_categories",
-    "humaneval_repo_id",
-    "humaneval_split",
     "total_turns",
     "temperature",
     "max_tokens",
@@ -243,36 +205,6 @@ def _runtime_context() -> Dict[str, Any]:
         "qa_tasks": cfg.QA_TASKS,
         "qa_context_chars": cfg.QA_CONTEXT_CHARS,
         "task_pool_ids_path": cfg.TASK_POOL_IDS_PATH,
-        "qasc_repo_id": cfg.QASC_REPO_ID,
-        "qasc_split": cfg.QASC_SPLIT,
-        "mmlu_pro_repo_id": cfg.MMLU_PRO_REPO_ID,
-        "mmlu_pro_split": cfg.MMLU_PRO_SPLIT,
-        "mmlu_pro_min_options": cfg.MMLU_PRO_MIN_OPTIONS,
-        "mmlu_pro_categories": cfg.MMLU_PRO_CATEGORIES,
-        "mmlu_pro_source_prefixes": cfg.MMLU_PRO_SOURCE_PREFIXES,
-        "musr_repo_id": cfg.MUSR_REPO_ID,
-        "musr_split": cfg.MUSR_SPLIT,
-        "decision_sabotage_task_version": cfg.DECISION_SABOTAGE_TASK_VERSION,
-        "apps_control_repo_id": cfg.APPS_CONTROL_REPO_ID,
-        "apps_control_split": cfg.APPS_CONTROL_SPLIT,
-        "apps_control_backdoor_source": cfg.APPS_CONTROL_BACKDOOR_SOURCE,
-        "apps_control_review_mode": cfg.APPS_CONTROL_REVIEW_MODE,
-        "apps_control_max_question_chars": cfg.APPS_CONTROL_MAX_QUESTION_CHARS,
-        "apps_control_max_code_chars": cfg.APPS_CONTROL_MAX_CODE_CHARS,
-        "apps_control_max_total_chars": cfg.APPS_CONTROL_MAX_TOTAL_CHARS,
-        "apps_control_nondeterminism_score_max": cfg.APPS_CONTROL_NONDETERMINISM_SCORE_MAX,
-        "musique_repo_id": cfg.MUSIQUE_REPO_ID,
-        "musique_file_variant": cfg.MUSIQUE_FILE_VARIANT,
-        "musique_split": cfg.MUSIQUE_SPLIT,
-        "musique_min_hops": cfg.MUSIQUE_MIN_HOPS,
-        "code_dataset": cfg.CODE_DATASET_NAME,
-        "code_tasks": cfg.CODE_TASKS,
-        "bigcodebench_repo_id": cfg.BIGCODEBENCH_REPO_ID,
-        "bigcodebench_split": cfg.BIGCODEBENCH_SPLIT,
-        "bigcodebench_require_threat_surface": cfg.BIGCODEBENCH_REQUIRE_THREAT_SURFACE,
-        "bigcodebench_threat_surface_categories": ",".join(cfg.BIGCODEBENCH_THREAT_SURFACE_CATEGORIES),
-        "humaneval_repo_id": cfg.HUMANEVAL_REPO_ID,
-        "humaneval_split": cfg.HUMANEVAL_SPLIT,
         "total_turns": cfg.TOTAL_TURNS,
         "temperature": cfg.TEMPERATURE,
         "max_tokens": cfg.MAX_TOKENS,
@@ -331,66 +263,6 @@ def _config_key_from_row(row: Dict[str, Any]) -> str:
         "qa_tasks": int(float(row.get("qa_tasks", cfg.QA_TASKS))),
         "qa_context_chars": int(float(row.get("qa_context_chars", cfg.QA_CONTEXT_CHARS))),
         "task_pool_ids_path": row.get("task_pool_ids_path", cfg.TASK_POOL_IDS_PATH),
-        "qasc_repo_id": row.get("qasc_repo_id", cfg.QASC_REPO_ID),
-        "qasc_split": row.get("qasc_split", cfg.QASC_SPLIT),
-        "mmlu_pro_repo_id": row.get("mmlu_pro_repo_id", cfg.MMLU_PRO_REPO_ID),
-        "mmlu_pro_split": row.get("mmlu_pro_split", cfg.MMLU_PRO_SPLIT),
-        "mmlu_pro_min_options": int(float(row.get("mmlu_pro_min_options", cfg.MMLU_PRO_MIN_OPTIONS))),
-        "mmlu_pro_categories": row.get(
-            "mmlu_pro_categories",
-            ",".join(cfg.MMLU_PRO_CATEGORIES),
-        ),
-        "mmlu_pro_source_prefixes": row.get(
-            "mmlu_pro_source_prefixes",
-            ",".join(cfg.MMLU_PRO_SOURCE_PREFIXES),
-        ),
-        "musr_repo_id": row.get("musr_repo_id", cfg.MUSR_REPO_ID),
-        "musr_split": row.get("musr_split", cfg.MUSR_SPLIT),
-        "decision_sabotage_task_version": row.get(
-            "decision_sabotage_task_version",
-            cfg.DECISION_SABOTAGE_TASK_VERSION,
-        ),
-        "apps_control_repo_id": row.get("apps_control_repo_id", cfg.APPS_CONTROL_REPO_ID),
-        "apps_control_split": row.get("apps_control_split", cfg.APPS_CONTROL_SPLIT),
-        "apps_control_backdoor_source": row.get(
-            "apps_control_backdoor_source",
-            cfg.APPS_CONTROL_BACKDOOR_SOURCE,
-        ),
-        "apps_control_review_mode": row.get("apps_control_review_mode", cfg.APPS_CONTROL_REVIEW_MODE),
-        "apps_control_max_question_chars": int(float(row.get(
-            "apps_control_max_question_chars",
-            cfg.APPS_CONTROL_MAX_QUESTION_CHARS,
-        ))),
-        "apps_control_max_code_chars": int(float(row.get(
-            "apps_control_max_code_chars",
-            cfg.APPS_CONTROL_MAX_CODE_CHARS,
-        ))),
-        "apps_control_max_total_chars": int(float(row.get(
-            "apps_control_max_total_chars",
-            cfg.APPS_CONTROL_MAX_TOTAL_CHARS,
-        ))),
-        "apps_control_nondeterminism_score_max": float(row.get(
-            "apps_control_nondeterminism_score_max",
-            cfg.APPS_CONTROL_NONDETERMINISM_SCORE_MAX,
-        )),
-        "musique_repo_id": row.get("musique_repo_id", cfg.MUSIQUE_REPO_ID),
-        "musique_file_variant": row.get("musique_file_variant", cfg.MUSIQUE_FILE_VARIANT),
-        "musique_split": row.get("musique_split", cfg.MUSIQUE_SPLIT),
-        "musique_min_hops": int(float(row.get("musique_min_hops", cfg.MUSIQUE_MIN_HOPS))),
-        "code_dataset": row.get("code_dataset", cfg.CODE_DATASET_NAME),
-        "code_tasks": int(float(row.get("code_tasks", cfg.CODE_TASKS))),
-        "bigcodebench_repo_id": row.get("bigcodebench_repo_id", cfg.BIGCODEBENCH_REPO_ID),
-        "bigcodebench_split": row.get("bigcodebench_split", cfg.BIGCODEBENCH_SPLIT),
-        "bigcodebench_require_threat_surface": str(row.get(
-            "bigcodebench_require_threat_surface",
-            cfg.BIGCODEBENCH_REQUIRE_THREAT_SURFACE,
-        )).strip().lower() in {"1", "true", "yes", "y", "on"},
-        "bigcodebench_threat_surface_categories": row.get(
-            "bigcodebench_threat_surface_categories",
-            ",".join(cfg.BIGCODEBENCH_THREAT_SURFACE_CATEGORIES),
-        ),
-        "humaneval_repo_id": row.get("humaneval_repo_id", cfg.HUMANEVAL_REPO_ID),
-        "humaneval_split": row.get("humaneval_split", cfg.HUMANEVAL_SPLIT),
         "total_turns": int(float(row.get("total_turns", cfg.TOTAL_TURNS))),
         "temperature": float(row.get("temperature", cfg.TEMPERATURE)),
         "max_tokens": int(float(row.get("max_tokens", cfg.MAX_TOKENS))),
@@ -454,23 +326,11 @@ def generate_configs(total_reps: int = None) -> List[ExperimentConfig]:
 
 
 def generate_smoke_configs() -> List[ExperimentConfig]:
-    if DOMAIN == "code_synthesis":
-        return [
-            ExperimentConfig(1, "0", 0, condition_name="clean_baseline"),
-            ExperimentConfig(1, "1", 0, condition_name="single_attacker"),
-            ExperimentConfig(1, "1", 1, condition_name="single_attacker_one_detector"),
-        ]
-    if cfg.QA_DATASET_NAME in {"decision_sabotage", "coordination_collusion", "apps_control", "apps_control_review"}:
-        return [
-            ExperimentConfig(1, "0", 0, condition_name="clean_baseline"),
-            ExperimentConfig(1, "1", 0, condition_name="single_attacker"),
-            ExperimentConfig(1, "1", 1, condition_name="single_attacker_one_detector"),
-            ExperimentConfig(1, "2", 0, condition_name="collusive_attack"),
-            ExperimentConfig(1, "2", 2, condition_name="collusive_attack_two_detectors"),
-        ]
     return [
         ExperimentConfig(1, "0", 0, condition_name="clean_baseline"),
-        ExperimentConfig(1, "2", 1, condition_name="collusive_attack_one_detector"),
+        ExperimentConfig(1, "1", 0, condition_name="single_attacker"),
+        ExperimentConfig(1, "1", 1, condition_name="single_attacker_one_detector"),
+        ExperimentConfig(1, "2", 0, condition_name="collusive_attack"),
         ExperimentConfig(1, "2", 2, condition_name="collusive_attack_two_detectors"),
     ]
 
@@ -545,11 +405,10 @@ async def _append_task_progress(jsonl_path: str, lock: asyncio.Lock, task_key: s
 
 
 def _build_task_pools(seed: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
-    task_count = cfg.CODE_TASKS if DOMAIN == "code_synthesis" else cfg.QA_TASKS
     return {
         DOMAIN: load_domain_tasks(
             DOMAIN,
-            task_count,
+            cfg.QA_TASKS,
             seed=seed,
             task_ids_path=cfg.TASK_POOL_IDS_PATH or None,
         )
@@ -734,7 +593,7 @@ async def _run_single_task(exp_config: ExperimentConfig, task: Dict[str, Any], t
         "score_totals": task.get("score_totals", {}),
         "num_private_shards": task.get("num_private_shards", ""),
         "rep": exp_config.rep,
-        "decision_protocol": "system_majority_vote" if exp_config.domain != "code_synthesis" else "candidate_submission_then_system_vote",
+        "decision_protocol": "system_majority_vote",
         "coordination_structure": "public_peer_discussion",
         **_runtime_context(),
         **_condition_labels(exp_config, malicious_count),
@@ -964,20 +823,10 @@ def _apply_cli_overrides(args: argparse.Namespace) -> None:
     if args.task_progress_jsonl:
         TASK_PROGRESS_JSONL = args.task_progress_jsonl
     if args.smoke:
-        if DOMAIN == "code_synthesis":
-            cfg.CODE_TASKS = int(args.smoke_tasks)
-            cfg.SWE_BENCH_TASKS = cfg.CODE_TASKS
-        else:
-            cfg.QA_TASKS = int(args.smoke_tasks)
-            cfg.HOTPOT_QA_TASKS = cfg.QA_TASKS
+        cfg.QA_TASKS = int(args.smoke_tasks)
         TOTAL_REPS = 1
     if args.tasks is not None:
-        if DOMAIN == "code_synthesis":
-            cfg.CODE_TASKS = int(args.tasks)
-            cfg.SWE_BENCH_TASKS = cfg.CODE_TASKS
-        else:
-            cfg.QA_TASKS = int(args.tasks)
-            cfg.HOTPOT_QA_TASKS = cfg.QA_TASKS
+        cfg.QA_TASKS = int(args.tasks)
     if args.task_ids_path is not None:
         cfg.TASK_POOL_IDS_PATH = args.task_ids_path
     if args.reps is not None:
@@ -1039,7 +888,7 @@ def main() -> None:
     if not args.no_shuffle:
         random.shuffle(configs)
 
-    tasks_per_config = cfg.CODE_TASKS if DOMAIN == "code_synthesis" else cfg.QA_TASKS
+    tasks_per_config = cfg.QA_TASKS
     total_task_runs = len(configs) * tasks_per_config
     condition_names = sorted({config_item.condition_name for config_item in configs})
     print("=== Collusive Covert Experiment ===")

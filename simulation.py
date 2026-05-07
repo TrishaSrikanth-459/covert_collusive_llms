@@ -57,7 +57,7 @@ class Simulation:
             det.send_message = self.send_private_message
 
     def _is_code_domain(self) -> bool:
-        return self.domain == "code_synthesis"
+        return False
 
     def send_private_message(self, sender_id: int, recipient_id: int, content: str, is_detector: bool = False) -> bool:
         """Send a private detector-to-detector coordination message.

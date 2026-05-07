@@ -22,7 +22,7 @@ def _get_env_int(key: str, default: int) -> int:
 
 
 def _rate_limit_per_sec() -> float:
-    # The full HotpotQA matrix is call-heavy; default to modest Azure parallelism.
+    # The full experiment is call-heavy; default to modest Azure parallelism.
     # Override RATE_LIMIT_PER_SEC if a deployment needs stricter throttling.
     return max(_get_env_float("RATE_LIMIT_PER_SEC", 2.0), 0.01)
 

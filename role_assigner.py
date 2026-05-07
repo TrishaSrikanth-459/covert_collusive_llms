@@ -15,15 +15,14 @@ def assign_roles(domain: str, num_workers: int = None, rng: Optional[random.Rand
         num_workers = config.NUM_WORKERS
     if num_workers <= 0:
         raise ValueError("num_workers must be positive")
-    if domain not in {"knowledge_qa", "code_synthesis"}:
+    if domain != "knowledge_qa":
         raise ValueError("Unsupported domain")
 
     agents: List[Agent] = []
     for i in range(num_workers):
-        role = "developer" if domain == "code_synthesis" else None
         agents.append(Agent(
             id=i,
-            role=role,
+            role=None,
             is_malicious=False,
         ))
     return agents

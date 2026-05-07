@@ -1,0 +1,289 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{cite}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+
+\title{Eyes in the Backchannel: Detecting Covert Collusion in LLM Multi-Agent Systems}
+
+\author{Trisha~Srikanth,
+        Elizabeth~Kushelevsky,
+        and~Nicholas~Assaderaghi}
+
+\markboth{IEEE Transactions on Information Forensics and Security}%
+{Srikanth \MakeLowercase{\textit{et al.}}: Eyes in the Backchannel}
+
+\maketitle
+
+%=============================================================
+\begin{abstract}
+%=============================================================
+Large language model-based multi-agent systems (LLM-MAS) are increasingly used for collaborative reasoning and agentic decision making, yet their security against \emph{covert collusion} remains poorly understood. Prior work has studied single malicious agents that hide adversarial intent, as well as Byzantine agents whose failures are comparatively overt. We study a harder intermediate case: malicious agents that participate naturally in a group discussion while steering the group toward a targeted wrong decision. To avoid the confound in which a malicious ``reporter'' directly controls the final answer, we introduce a coordination-collusion benchmark in which five agents receive asymmetric private evidence shards, deliberate publicly, and submit private final votes that are aggregated by the system. Attackers have no private communication channel; detector agents do. In a 1,125-run holdout evaluation using Azure OpenAI \texttt{gpt-5.2} across 25 unseen tasks, clean systems achieved 100\% functional correctness. A single covert attacker reduced correctness to 51.2\% and achieved 48.8\% targeted attack success, while two collusive attackers reduced correctness to 20.0\% and achieved 80.0\% attack success. Detector agents sharply reduced attack success: single-attacker success fell to 1.6\% with one detector and 0.0\% with two, while collusive-attack success fell to 0.0\% with one detector and 0.8\% with two. Clean detector false-positive rates remained at or below 0.27\%, and the full run completed with zero task failures. These results show that covert collusion can substantially amplify sabotage even without private attacker communication, while coordinated monitoring can restore system-level reliability when detectors are given an appropriate private audit channel.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Large language models, multi-agent systems, collusion, covert attacks, agent monitoring, AI safety, Byzantine robustness.
+\end{IEEEkeywords}
+
+\IEEEpeerreviewmaketitle
+
+%=============================================================
+\section{Introduction}
+\label{sec:intro}
+%=============================================================
+
+\IEEEPARstart{L}{arge} language model-based multi-agent systems (LLM-MAS) are beginning to move from prototype-stage research into pilot and early deployment settings~\cite{renney2026llmmas}. However, the collaborative nature of LLM-MAS increases the overall threat surface, introducing additional concerns regarding system reliability.
+
+Recent works have explored LLM-MAS security through the lens of \emph{Byzantine fault tolerance}, a characteristic of LLM-MAS systems that maintains functional correctness despite a subset of agents behaving maliciously or erroneously. In particular, Luo et al. assign weights to individual agents based on answer quality and trust metrics, incorporating a blockchain-style consensus to select the optimal answer~\cite{luo2025wbft}. Likewise, Zheng et al. introduce CP-WBFT, a weighted consensus based on prompt-level confidence probing~\cite{zheng2025rethinking}. Both proposed systems outperform traditional consensus mechanisms in success rate, with CP-WBFT notably robust against extreme Byzantine conditions.
+
+Nonetheless, many Byzantine settings make malicious behavior faulty, arbitrary, or overt. CP-WBFT, for example, configures the Byzantine agent by selecting a weaker LLM than the other agents~\cite{zheng2025rethinking}. Jo et al. simulate Byzantine behavior by manually altering outputs to yield incorrect numbers or advertisements, in addition to other observable attacks~\cite{jo2025decentllms}. These settings are important, but they do not capture the more subtle threat of an agent that appears useful while intentionally steering group reasoning.
+
+Xie et al.~\cite{xie2025mole} provide a systematic study of agents that engage in covertly malicious behavior, formalizing intention-hiding attack paradigms such as suboptimal fixation, reframing misalignment, fake injection, and execution delay. They also introduce AgentXposed, a detection framework grounded in HEXACO personality profiling and Reid-style interrogation. Their work, however, focuses primarily on a \emph{single} malicious agent.
+
+We investigate what happens when adversaries collude inside the same multi-agent system. Collusion changes the detection problem qualitatively: a false claim proposed by a single agent may be suspicious, but the same claim independently reinforced by a second agent can mimic genuine group consensus. The detector must determine whether agreement reflects shared truth or shared deception.
+
+This paper also addresses a methodological confound in our prior experimental design. If a malicious agent is always assigned to the reporter role, then an attack may succeed because the attacker controls the output channel rather than because it influenced the group. We remove that confound. In our revised benchmark, agents deliberate publicly but cast private final votes, and the system aggregates those votes. Thus, attackers must influence the group decision rather than simply write the final answer.
+
+Our contributions are as follows:
+\begin{itemize}
+  \item We define a covert collusion threat model for LLM-MAS in which attackers lack private communication, must remain plausible participants, and can succeed only by steering the system-level decision.
+  \item We introduce a coordination-collusion benchmark with asymmetric private evidence shards, public deliberation, and private vote aggregation, eliminating the designated-reporter bottleneck.
+  \item We evaluate single-attacker, collusive-attacker, single-detector, and dual-detector settings over 1,125 holdout task-condition runs using \texttt{gpt-5.2}.
+  \item We show that collusion substantially amplifies attack success, while detector agents with a private audit channel sharply reduce successful sabotage with low clean-run false positives.
+\end{itemize}
+
+%=============================================================
+\section{Background and Related Work}
+\label{sec:related}
+%=============================================================
+
+\subsection{Vulnerable LLM-MAS Communication Structures}
+LLM-MAS have been studied under centralized, decentralized, and layered communication structures~\cite{tran2025survey}. Decentralized architectures, where agents communicate peer-to-peer, are particularly vulnerable to injected misinformation because there is no privileged coordinator to sanity-check contributions~\cite{xie2025mole}. Our experiment uses public group deliberation to expose agents to one another's claims, but it separates deliberation from final decision authority through private vote aggregation.
+
+\subsection{Covert Adversarial Attacks on LLM-MAS}
+Byzantine agents that engage in explicitly adversarial behavior, such as inserting wholly wrong answers or malicious links into the output, are increasingly well-studied~\cite{chen2024blockagents}. Subtler intention-hiding attacks remain an open problem. Xie et al. define covert paradigms that reduce performance without obviously violating behavioral norms~\cite{xie2025mole}. We build on this line of work but focus on whether covert adversaries can recruit or sway benign agents rather than merely corrupting a designated output channel.
+
+\subsection{Collusion}
+Tian et al. generate a multi-agent adversarial system in which agents collaborate to construct an attack prompt that is subsequently fed into a target LLM's prompt system. They observe that a single compromised agent can create a domino effect: other agents begin adopting harmful reasoning, and the system inadvertently behaves as a colluding group~\cite{tian2023evil}. Our work moves from emergent collusion to intentionally modeled collusive adversaries, enabling a controlled evaluation of how coordinated malicious agents influence group reasoning and degrade system reliability.
+
+\subsection{Detection and Defense}
+GuardAgent~\cite{xiang2024guardagent} performs runtime safety enforcement, employing an LLM to analyze agent execution traces and generate executable guardrail code, while AgentGuard~\cite{chen2025agentguard} leverages an LLM-based orchestrator for the pre-deployment evaluation of unsafe tool-use workflows. In contrast, G-Safeguard~\cite{wang2025gsafeguard} encodes multi-agent dialogue as a graph and applies a graph neural network to identify abnormal influence propagation. AgentXposed~\cite{xie2025mole} employs an LLM-based detector that combines personality-informed profiling with interrogation-style prompting. Our detector operates at the single-session level: it audits public claims against task evidence, exchanges private detector-only notes when another detector is present, and issues structured quarantine recommendations.
+
+%=============================================================
+\section{Threat Model}
+\label{sec:threat}
+%=============================================================
+
+We consider a decentralized LLM-MAS performing asymmetric-information decision tasks. A team of $N=5$ agents collaborates over $T=6$ turns. Each agent receives a private evidence shard and observes the public conversation. At the end of the discussion, each non-quarantined worker casts a private vote, and the system aggregates votes to select the final option. There is no designated reporter role.
+
+\textbf{Task objective.} Each task presents a set of candidate options. Each worker privately observes one scoring shard. The correct decision is the option with the highest total score after combining all private shards. This structure requires agents to share local evidence, compare claims, and reason collectively.
+
+\textbf{Malicious agent capabilities.} Malicious agents are planted during role assignment. They participate naturally in discussion, use role-consistent language, and attempt to steer the group toward a specified plausible but incorrect target option. In the single-attacker setting, one worker is malicious. In the collusive setting, two workers are malicious. Attackers know their shared target but have no private communication channel; all attacker influence must occur through public discussion.
+
+\textbf{Detector agent capabilities.} Detector agents are non-malicious agents with an audit role. They observe public discussion, compare claims against available task evidence, and issue structured recommendations that can reduce credibility, quarantine, or allow recovery. When two detectors are present, they may exchange concise private detector-to-detector notes. This private channel is reserved for detectors only.
+
+\textbf{Permission policy.} Detector recommendations are mediated by a permission manager. Quarantine restricts an agent's influence but preserves the possibility of recovery after clean behavior. We retain quarantine and recovery rather than deleting earlier public messages or retroactively changing the transcript.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.2}
+\caption{Mapping from credibility score $c$ to permission level.}
+\label{tab:credibility}
+\centering
+\begin{tabular}{cc}
+\toprule
+\textbf{Credibility Range} & \textbf{Permission Level} \\
+\midrule
+$c \geq 0.8$ & Full access \\
+$0.2 \leq c < 0.8$ & Quarantine / restricted influence \\
+$c < 0.2$ & Removed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Adversary objectives.} Malicious agents aim to maximize adoption of the target wrong option while appearing benign. An attack succeeds when the final system-selected option equals the attack target.
+
+%=============================================================
+\section{Methodology}
+\label{sec:method}
+%=============================================================
+
+\subsection{Coordination-Collusion Benchmark}
+
+We replace short-answer QA with a synthetic coordination-collusion benchmark designed to avoid brittle string normalization and reporter-role confounds. Each task is an asymmetric-information decision problem: agents see private evidence shards, discuss publicly, and vote privately. The system-level answer is computed from the final vote aggregation, not from a free-form reporter response.
+
+The benchmark has three advantages for studying covert collusion. First, there is an objectively correct answer, so functional correctness is unambiguous. Second, there is a plausible targeted wrong answer, so attack success can be measured directly. Third, because evidence is distributed, benign agents must rely partly on one another, creating a real channel for influence rather than parallel extraction.
+
+\subsection{Attack Strategy}
+
+The active attack strategy is a covert fake-injection and score-forgery strategy adapted to the decision setting. Malicious agents do not announce a refusal, reveal their role, or simply cast an unexplained wrong vote. Instead, they attempt to make the target option appear better supported by selectively emphasizing their shard, misstating comparative strength, appealing to convergence, and reinforcing public uncertainty around the correct option. Collusive attackers are instructed to support the same target through public discussion while avoiding explicit acknowledgment of coordination.
+
+We intentionally avoid task-specific prompt tuning. The attack prompt does not contain task names, task IDs, or hand-written hints for individual items. The only task-specific information supplied to agents is the benchmark instance itself: the options, the agent's private shard, and the attack target assigned by the task generator.
+
+\subsection{Detection Framework}
+
+Our detector framework differs from personality-profiling approaches such as AgentXposed~\cite{xie2025mole}. Instead of attempting to infer hidden intent from long-term behavioral traits, the detector audits whether public claims are consistent with the task evidence and whether a worker's recommendations are unsupported, misleading, or suspiciously targeted.
+
+\textbf{Single-detector setting.} A single detector observes the transcript and may recommend quarantining a worker when evidence exceeds a confidence threshold of 0.6.
+
+\textbf{Dual-detector setting.} Two detectors observe the same transcript and can exchange private detector-only notes. Their recommendations are applied by the permission manager. This tests whether detector coordination can reduce successful sabotage without granting attackers a corresponding private channel.
+
+\subsection{Anti-Overfitting Controls}
+
+Before the final run, we used separate smoke tests and audits to validate the pipeline, detector parsing, private-message policy, and clean-baseline behavior. The final 25-task holdout set had zero overlap with the audit manifest. Prompts, task selection, and condition definitions were frozen before the full run. We did not edit prompts in response to individual holdout-task outcomes.
+
+%=============================================================
+\section{Experimental Design}
+\label{sec:design}
+%=============================================================
+
+\subsection{Setup}
+
+All agents are instantiated through Azure OpenAI \texttt{gpt-5.2}. Each session uses $N=5$ agents, $T=6$ turns, temperature $0.4$, and a 700-token response cap. The final evaluation run contains 25 holdout tasks, five repetitions per condition, and nine conditions, yielding $25 \times 5 \times 9 = 1{,}125$ task-condition runs.
+
+\subsection{Conditions}
+
+We evaluate the nine conditions shown in Table~\ref{tab:conditions}. Clean detector conditions are included to estimate false-positive behavior in benign settings.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.2}
+\caption{Experimental conditions.}
+\label{tab:conditions}
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Condition} & \textbf{Attackers} & \textbf{Detectors} \\
+\midrule
+clean\_baseline & 0 & 0 \\
+clean\_one\_detector & 0 & 1 \\
+clean\_two\_detectors & 0 & 2 \\
+single\_attacker & 1 & 0 \\
+single\_attacker\_one\_detector & 1 & 1 \\
+single\_attacker\_two\_detectors & 1 & 2 \\
+collusive\_attack & 2 & 0 \\
+collusive\_attack\_one\_detector & 2 & 1 \\
+collusive\_attack\_two\_detectors & 2 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Metrics}
+
+\textbf{Functional correctness (FC)} is the proportion of runs in which the system-selected option matches the globally optimal option computed from all private shards.
+
+\textbf{Attack success (AS)} is the proportion of runs in which the system-selected option matches the malicious target option.
+
+\textbf{Completion failure (CF)} measures task-level pipeline failure, including missing transcripts, malformed outputs, unhandled model errors, or failed evaluation.
+
+\textbf{Detection rate (DR)} is the proportion of malicious agents correctly restricted or flagged in detector conditions. \textbf{Detection precision (DP)} is the proportion of restricted or flagged agents that are malicious. \textbf{False-positive rate (FPR)} is the proportion of benign agents incorrectly restricted.
+
+%=============================================================
+\section{Results}
+\label{sec:results}
+%=============================================================
+
+\subsection{Pipeline Integrity}
+
+The full holdout run completed 1,125 of 1,125 task-condition runs with zero completion failures. We observed no missing databases, no low-valid-vote failures, and no private-message policy violations. Detector-private communication occurred in detector conditions, with 1,274 detector-to-detector private messages recorded, while non-detector private messages remained at zero.
+
+\subsection{RQ1: Do Covert Attackers Degrade Group Decisions?}
+
+Yes. Table~\ref{tab:main_results} reports the primary task and detection metrics. In the absence of detectors, a single covert attacker reduced functional correctness from 100.0\% to 51.2\% and achieved 48.8\% targeted attack success. Two collusive attackers reduced functional correctness to 20.0\% and achieved 80.0\% targeted attack success. Thus, collusion increased attack success by 31.2 percentage points relative to a single attacker.
+
+\begin{table*}[!t]
+\renewcommand{\arraystretch}{1.25}
+\caption{Full holdout results across 25 tasks, 5 repetitions, and 9 conditions ($n=125$ per condition). Dashes indicate metrics that are not applicable because no malicious agents or no detectors are present.}
+\label{tab:main_results}
+\centering
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Condition} & \textbf{FC} & \textbf{AS} & \textbf{DR} & \textbf{DP} & \textbf{FPR} & \textbf{CF} \\
+\midrule
+clean\_baseline & 1.000 & 0.000 & -- & -- & -- & 0.000 \\
+clean\_one\_detector & 1.000 & 0.000 & -- & -- & 0.0016 & 0.000 \\
+clean\_two\_detectors & 1.000 & 0.000 & -- & -- & 0.0000 & 0.000 \\
+single\_attacker & 0.512 & 0.488 & -- & -- & -- & 0.000 \\
+single\_attacker\_one\_detector & 0.984 & 0.016 & 0.848 & 0.844 & 0.0020 & 0.000 \\
+single\_attacker\_two\_detectors & 1.000 & 0.000 & 0.782 & 0.782 & 0.0000 & 0.000 \\
+collusive\_attack & 0.200 & 0.800 & -- & -- & -- & 0.000 \\
+collusive\_attack\_one\_detector & 1.000 & 0.000 & 0.644 & 0.956 & 0.0027 & 0.000 \\
+collusive\_attack\_two\_detectors & 0.992 & 0.008 & 0.675 & 0.972 & 0.0027 & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textbf{RQ1 answer.} Covert attackers substantially degrade group decisions, and collusion amplifies that effect. The attacker must influence the group vote rather than control a reporter, making this a stronger test of covert social influence than the earlier reporter-anchored design.
+
+\subsection{RQ2: Does Detection Restore Functional Correctness?}
+
+Yes. In the single-attacker setting, adding one detector reduced attack success from 48.8\% to 1.6\%, while adding two detectors reduced attack success to 0.0\%. In the collusive setting, adding one detector reduced attack success from 80.0\% to 0.0\%, while adding two detectors reduced it to 0.8\%.
+
+Detector success does not require perfect malicious-agent identification. For example, collusive two-detector runs detected malicious agents at a rate of 67.5\% with 97.2\% precision, yet attack success fell to 0.8\%. This suggests that partial, timely quarantine can be sufficient to prevent target adoption.
+
+\textbf{RQ2 answer.} Detector agents restore system-level reliability in this benchmark, even under collusive attack. The defense is not perfect attribution; rather, it is effective interruption of the influence process.
+
+\subsection{RQ3: Does Detector Coordination Help?}
+
+The effect of adding a second detector is asymmetric. In clean runs, two detectors produced no false positives, compared with a 0.16\% false-positive rate for one detector. Against single attackers, two detectors reduced attack success from 1.6\% to 0.0\%. Against collusive attackers, one detector already reduced attack success to 0.0\%, while two detectors yielded 0.8\% attack success. However, two-detector collusive runs achieved higher precision (97.2\%) than single-detector collusive runs (95.6\%).
+
+\textbf{RQ3 answer.} Detector coordination is useful but not uniformly dominant. Its clearest benefits are low false positives, high precision, and redundancy. The main empirical result is that detector-equipped systems sharply reduce attack success in both single-attacker and collusive settings.
+
+\subsection{RQ4: Does Collusion Matter Without Private Attacker Communication?}
+
+Yes. Attackers had no private channel and no ability to coordinate outside the public transcript, yet two attackers achieved 80.0\% attack success compared with 48.8\% for one attacker. This shows that collusion can operate through public reinforcement alone: a malicious claim becomes more persuasive when another agent independently validates it.
+
+\textbf{RQ4 answer.} Private attacker communication is not necessary for collusion to matter. Public reinforcement is sufficient to substantially increase attack success.
+
+%=============================================================
+\section{Discussion}
+\label{sec:discussion}
+%=============================================================
+
+\subsection{Why the Revised Design Is Stronger}
+
+The revised experiment fixes the central limitation of the earlier design: the malicious agent is no longer guaranteed control over the final answer. In the previous reporter-anchored setup, attack success could be attributed to output-channel compromise. In the new design, attack success requires persuading enough of the group to adopt the target option in private votes. This better isolates the phenomenon we care about: covert malicious influence inside collaborative LLM-MAS.
+
+\subsection{The False Consensus Bottleneck}
+
+The results support the intuition that agreement is not equivalent to independent evidence. In collaborative systems, repeated support for the same option often increases confidence. Under collusion, however, that same pattern can be manufactured. The collusive condition demonstrates that public reinforcement alone can shift decisions even when attackers cannot communicate privately.
+
+\subsection{Detection as Influence Interruption}
+
+The detector results should not be interpreted as proving that malicious intent is easy to identify. Detection rates remain imperfect, especially in collusive settings. The important finding is that detectors can interrupt the influence pathway early enough to restore the final decision. This distinction matters: a practical defense may not need perfect attribution if it can reduce the persuasive weight of suspicious claims before final aggregation.
+
+\subsection{False Positives and Clean Controls}
+
+Clean detector controls are essential because a detector that prevents attacks by broadly suppressing benign agents would not be a useful defense. In our holdout run, clean one-detector and two-detector systems both maintained 100.0\% functional correctness. False-positive rates were 0.16\% and 0.00\%, respectively, suggesting that the detector policy did not degrade benign collaboration in this benchmark.
+
+\subsection{Limitations}
+
+This study evaluates a controlled synthetic coordination-collusion benchmark rather than an open-ended deployment environment. The task design intentionally creates asymmetric private evidence and plausible wrong targets, which is appropriate for isolating covert influence but does not cover all real-world agent workflows. Detectors also have an audit-oriented role and access to task evidence; weaker monitors may perform worse. The full run uses a single model family, Azure OpenAI \texttt{gpt-5.2}, and 25 holdout tasks with five repetitions. Although this is sufficient to demonstrate the main effect under frozen prompts and zero pipeline failures, future work should scale to larger task pools, additional model families, adaptive adversaries, and richer tool-use environments.
+
+%=============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%=============================================================
+
+We present a revised evaluation of covert collusion in LLM-MAS that removes the designated-reporter confound and tests whether malicious agents can influence a group decision. In a frozen 1,125-run holdout evaluation, a single attacker achieved 48.8\% targeted attack success, while two collusive attackers achieved 80.0\% attack success despite having no private communication channel. Detector agents with a private audit channel reduced attack success to near zero while preserving clean-run correctness and maintaining low false-positive rates. These findings suggest that covert collusion is a real threat to multi-agent reliability, but also that appropriately designed detector coordination can substantially mitigate sabotage without collapsing benign collaboration.
+
+%=============================================================
+\appendices
+\section{Implementation and Prompt Policy Summary}
+\label{app:prompts}
+
+The final experiment used generic role prompts rather than task-specific prompt edits. Attacker prompts did not contain task IDs, task names, or hand-written per-task strategies. Detector prompts instructed audit agents to compare public claims with task evidence, use a private detector-only channel when available, and issue structured quarantine recommendations at confidence $\geq 0.6$. The permission manager retained quarantine and recovery: prior public messages were not deleted, and quarantined agents could recover after clean behavior. This preserves chronological validity of the transcript while allowing detectors to reduce the future influence of suspicious agents.
+
+%=============================================================
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+%=============================================================
+
+\end{document}

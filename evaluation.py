@@ -27,7 +27,7 @@ class Evaluator:
         self._code_eval_cache: Optional[Dict[str, object]] = None
 
     def _is_code_domain(self) -> bool:
-        return self.domain == "code_synthesis"
+        return False
 
     def _get_metadata(self, key: str, default=None):
         cursor = self.conn.cursor()
@@ -225,7 +225,7 @@ class Evaluator:
                 "module = importlib.util.module_from_spec(spec)\n"
                 "spec.loader.exec_module(module)\n"
                 "candidate = getattr(module, entry_point)\n"
-                # HumanEval checks can reference helper symbols defined in the
+                # Code checks can reference helper symbols defined in the
                 # submitted module, not just the entry point.
                 "namespace = dict(module.__dict__)\n"
                 "namespace[entry_point] = candidate\n"
